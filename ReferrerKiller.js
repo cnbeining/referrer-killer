@@ -15,10 +15,10 @@
  * 		Abuses:
  * 			- Stilling bandwidth, using some other site contents (hotlinking, http://en.wikipedia.org/wiki/Inline_linking).
  * @Interface:
- * 		- ReferrerKiller.linkHtml(url, innerHtml, anchorParams, iframeParams). Returns a string.
- * 		- ReferrerKiller.linkNode(url, innerHtml, anchorParams, iframeParams). Returns an Html Node.
- * 		- ReferrerKiller.imageHtml(url, imgParams, iframeParams). Returns a string.
- * 		- ReferrerKiller.imageNode(url, imgParams, iframeParams). Returns an Html Node.
+ * 		- ReferrerKiller.linkHtml(url, [innerHtml], [anchorParams], [iframeAttributes]). Returns a string.
+ * 		- ReferrerKiller.linkNode(url, [innerHtml], [anchorParams], [iframeAttributes]). Returns an Html Node.
+ * 		- ReferrerKiller.imageHtml(url, [imgParams], [iframeAttributes]). Returns a string.
+ * 		- ReferrerKiller.imageNode(url, [imgParams], [iframeAttributes]). Returns an Html Node.
  */
 
 /**
@@ -73,11 +73,11 @@ var ReferrerKiller = (function () {
 	 *
 	 * @public
 	 * @param {string} html.
-	 * @param {object} [iframeAttributesParam]
+	 * @param {object} [iframeAttributes]
 	 * @return {string} html.
 	 */
-	function htmlString(html, iframeAttributesParam) {
-		var iframeAttributes  = iframeAttributesParam || {},
+	function htmlString(html, iframeAttributes) {
+		var iframeAttributes  = iframeAttributes || {},
 			defaultStyles = 'border:none; overflow:hidden; ',
 			id;
 		/*-- Setting default styles and letting the option to add more or overwrite them --*/
@@ -121,7 +121,6 @@ var ReferrerKiller = (function () {
 				encodeURIComponent(html) +
 				'\') +\'</body></html>\'"></iframe>';
 	}
-	PUB.wrap = htmlString;
 
 	/*-- Public interface --*/
 
@@ -132,10 +131,10 @@ var ReferrerKiller = (function () {
 	 * @param {string} url
 	 * @param {string} innerHTML
 	 * @param {object} [anchorParams]
-	 * @param {object} [iframeParams]
+	 * @param {object} [iframeAttributes]
 	 * @return {string} html
 	 */
-	function linkHtml(url, innerHTML, anchorParams, iframeParams) {
+	function linkHtml(url, innerHTML, anchorParams, iframeAttributes) {
 		var html;
 		innerHTML = innerHTML || false;
 		/*-- If there is no innerHTML use the url as innerHTML --*/
@@ -149,7 +148,7 @@ var ReferrerKiller = (function () {
 			anchorParams.target = '_top';
 		}
 		html = '<a href="' + escapeDoubleQuotes(url) + '" ' + objectToHtmlAttributes(anchorParams) + '>' + innerHTML + '</a>';
-		return htmlString(html, iframeParams);
+		return htmlString(html, iframeAttributes);
 	}
 	PUB.linkHtml = linkHtml;
 	
@@ -160,10 +159,11 @@ var ReferrerKiller = (function () {
 	 * @param {String} url
 	 * @param {String} innerHTML
 	 * @param {Object} [anchorParams]
+	 * @param {object} [iframeAttributes]
 	 * @return {Node}
 	 */
-	function linkNode(url, innerHTML, anchorParams) {
-		return htmlToNode(linkHtml(url, innerHTML, anchorParams));
+	function linkNode(url, innerHTML, anchorParams, iframeAttributes) {
+		return htmlToNode(linkHtml(url, innerHTML, anchorParams, iframeAttributes));
 	}
 	PUB.linkNode = linkNode;
 	
