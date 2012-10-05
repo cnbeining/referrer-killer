@@ -2,10 +2,10 @@
  * @Project: ReferrerKiller.
  * @Licence: The MIT License.
  * @Author: Juan Pablo Guereca.
- * @Description:
- * 	It prevents the browser of sending the http referrer in the following cases.
- * 		- Link: You can have a link in your website being sure that the destiny won't know about your site.
- * 		- Image: You can display an image from another site being sure the other site won't know your website is displaying it.
+ * @Description: Crossbrowser referrer killing solution.
+ * 		It's a hack that prevents the browser of sending the http referrer in the following cases:
+ * 			- Link: You can have a link in your website being sure that the destiny won't know about your site.
+ * 			- Image: You can display an image from another site being sure the other site won't know your website is displaying it.
  * 	Other interesting use is displaying an image without blocking the rest of the content, this way in case the image fails
  * it allows the rest of the page to load normally.
  * 		Uses:
@@ -14,6 +14,14 @@
  * 			- Saving bandwidth, considering you safe the extra bytes of the http referrer.
  * 		Abuses:
  * 			- Stilling bandwidth, using some other site contents (hotlinking, http://en.wikipedia.org/wiki/Inline_linking).
+ * @Compatibility:
+ * 		It's been tested successfully on:
+ * 			- Chrome 24.
+ * 			- Firefox 15.
+ * 			- Safari 6.
+ * 			- Opera 12: it sends the referer in the case of anchors if the targer is an iframe, not if it opens in other window
+ * 				or the same one, for images it never sends the referrer even without using the hack.
+ * 			- IE 6, 7 and 8.
  * @Interface:
  * 		- ReferrerKiller.linkHtml(url, [innerHtml], [anchorParams], [iframeAttributes]). Returns a string.
  * 		- ReferrerKiller.linkNode(url, [innerHtml], [anchorParams], [iframeAttributes]). Returns an Html Node.
@@ -86,40 +94,47 @@ var ReferrerKiller = (function () {
 		} else {
 			iframeAttributes.style = defaultStyles;
 		}
-		id = '__referrer_killer_' + (new Date).getTime();
+		id = '__referrer_killer_' + (new Date).getTime() + Math.floor(Math.random()*9999);
 		/*-- Returning html with the hack wrapper --*/
 		return '<iframe \
+				style="border 1px solid #ff0000" \
 				scrolling="no" \
 				frameborder="no" \
 				allowtransparency="true" ' +
-				/*-- Adding style attribute --*/
-				objectToHtmlAttributes( iframeAttributes ) +
-				'id="' + id + '" ' +
-			'	src="javascript:\'<!doctype html><html><meta charset=\\\'utf-8\\\'><style>*{margin:0;padding:0;border:0}</style>' +
-				/*-- Function to adapt iframe's size to content's size --*/
-				'<script>\
-					 function resizeWindow() {\
-						var elems  = document.getElementsByTagName(\\\'*\\\'),\
-							width  = 0,\
-							height = 0,\
-							elem;\
+			/*-- Adding style attribute --*/
+			objectToHtmlAttributes( iframeAttributes ) +
+			'id="' + id + '" ' +
+			'	src="javascript:\'<!doctype html><html><meta charset=\\\'utf-8\\\'><style>*{margin:0;padding:0;border:0;}</style>' +
+			/*-- Function to adapt iframe's size to content's size --*/
+			'<script>\
+				 function resizeWindow() {\
+					var elems  = document.getElementsByTagName(\\\'*\\\'),\
+						width  = 0,\
+						height = 0,\
+						first  = document.body.firstChild,\
+						elem;\
+					if (first.offsetHeight && first.offsetWidth) {\
+						width = first.offsetWidth;\
+						height = first.offsetHeight;\
+					} else {\
 						for (var i in elems) {\
-							elem = elems[i];\
-							if (!elem.offsetWidth) {\
-								continue;\
-							}\
-							width  = Math.max(elem.offsetWidth, width);\
-							height = Math.max(elem.offsetHeight, height);\
+											elem = elems[i];\
+											if (!elem.offsetWidth) {\
+												continue;\
+											}\
+											width  = Math.max(elem.offsetWidth, width);\
+											height = Math.max(elem.offsetHeight, height);\
 						}\
-						var ifr = parent.document.getElementById(\\\'' + id + '\\\'); \
-						ifr.height = height;\
-						ifr.width  = width;\
-				 	}\
-				</script>' +
-				'<body onload=\\\'resizeWindow()\\\'>\' + decodeURIComponent(\'' +
-				/*-- Content --*/
-				encodeURIComponent(html) +
-				'\') +\'</body></html>\'"></iframe>';
+					}\
+					var ifr = parent.document.getElementById(\\\'' + id + '\\\');\
+					ifr.height = height;\
+					ifr.width  = width;\
+				}\
+			</script>' +
+			'<body onload=\\\'resizeWindow()\\\'>\' + decodeURIComponent(\'' +
+			/*-- Content --*/
+			encodeURIComponent(html) +
+		'\') +\'</body></html>\'"></iframe>';
 	}
 
 	/*-- Public interface --*/
