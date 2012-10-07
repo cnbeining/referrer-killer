@@ -19,9 +19,11 @@
  * 			- Chrome 24.
  * 			- Firefox 15.
  * 			- Safari 6.
- * 			- Opera 12: it sends the referer in the case of anchors if the targer is an iframe, not if it opens in other window
+ * 			- Opera 12: it sends the referrer in the case of anchors if the target is an iframe, not if it opens in other window
  * 				or the same one, for images it never sends the referrer even without using the hack.
- * 			- IE 6, 7 and 8.
+ * 			- IE 6, 7, 8.
+ * 			- IE 9: it works for images but not links, that's why in that oogle's url redirection is used for this browser, in this case
+ * 					there is an intermediate page.
  * @Interface:
  * 		- ReferrerKiller.linkHtml(url, [innerHtml], [anchorParams], [iframeAttributes]). Returns a string.
  * 		- ReferrerKiller.linkNode(url, [innerHtml], [anchorParams], [iframeAttributes]). Returns an Html Node.
@@ -33,8 +35,22 @@
  * @module ReferrerKiller
  */
 var ReferrerKiller = (function () {
-	var PUB = {};
-	
+	var URL_REDIRECTION = "https://www.google.com/url?q=", // You can use another service if you use https protocol no referrer will be sent.
+		PUB = {},
+		IE_GT_8 = (function () {
+				/*- Detecting if it's IE greater than 8 -*/
+				var trident,
+					match = navigator.userAgent.match(/Trident\/(\d)+/);
+				if (null === match) {
+					return false;
+				}
+				trident = parseInt(match[1], 10);
+				if (isNaN(trident)) {
+					return false;
+				}
+				return trident > 4;
+		})();
+
 	/**
 	 * Escapes double quotes in a string.
 	 *
@@ -104,7 +120,13 @@ var ReferrerKiller = (function () {
 			/*-- Adding style attribute --*/
 			objectToHtmlAttributes( iframeAttributes ) +
 			'id="' + id + '" ' +
-			'	src="javascript:\'<!doctype html><html><meta charset=\\\'utf-8\\\'><style>*{margin:0;padding:0;border:0;}</style>' +
+			'	src="javascript:\'\
+			<!doctype html>\
+			<html>\
+			<head>\
+			<meta charset=\\\'utf-8\\\'>\
+			<style>*{margin:0;padding:0;border:0;}</style>\
+			</head>' +
 			/*-- Function to adapt iframe's size to content's size --*/
 			'<script>\
 				 function resizeWindow() {\
@@ -150,7 +172,8 @@ var ReferrerKiller = (function () {
 	 * @return {string} html
 	 */
 	function linkHtml(url, innerHTML, anchorParams, iframeAttributes) {
-		var html;
+		var html,
+			urlRedirection = '';
 		innerHTML = innerHTML || false;
 		/*-- If there is no innerHTML use the url as innerHTML --*/
 		if (!innerHTML) {
@@ -162,7 +185,10 @@ var ReferrerKiller = (function () {
 			/*-- Converting _self to _top else it would open in the iframe container --*/
 			anchorParams.target = '_top';
 		}
-		html = '<a href="' + escapeDoubleQuotes(url) + '" ' + objectToHtmlAttributes(anchorParams) + '>' + innerHTML + '</a>';
+		if (IE_GT_8) {
+			urlRedirection = URL_REDIRECTION;
+		}
+		html = '<a rel="noreferrer" href="' + urlRedirection + escapeDoubleQuotes(url) + '" ' + objectToHtmlAttributes(anchorParams) + '>' + innerHTML + '</a>';
 		return htmlString(html, iframeAttributes);
 	}
 	PUB.linkHtml = linkHtml;
